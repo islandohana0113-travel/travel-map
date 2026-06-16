@@ -65,6 +65,11 @@
   .filter-row { margin-bottom: 14px; }
   .filter-row select { font-size: 0.76rem; padding: 6px 10px; }
   .map-tooltip { position: fixed; background: var(--ink); color: var(--white); padding: 5px 11px; border-radius: 5px; font-size: 0.72rem; pointer-events: none; opacity: 0; transition: opacity 0.12s; z-index: 100; white-space: nowrap; }
+  .json-box { background: #1a1a2e; color: #a8d8b9; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 0.78rem; line-height: 1.7; margin-top: 10px; word-break: break-all; white-space: pre-wrap; }
+  .copy-btn { width: 100%; padding: 8px; background: var(--soft); color: var(--white); border: none; border-radius: 6px; font-family: 'Noto Sans JP', sans-serif; font-size: 0.78rem; cursor: pointer; margin-top: 8px; }
+  .copy-btn:hover { background: #6b5535; }
+  .instructions { font-size: 0.75rem; color: var(--soft); line-height: 1.8; margin-top: 10px; }
+  .instructions a { color: var(--moss); }
   @media (max-width: 768px) { .layout { grid-template-columns: 1fr; } .sidebar { border-left: none; border-top: 1px solid #e0dbd0; } .map-section { padding: 14px; } }
 </style>
 </head>
@@ -101,7 +106,19 @@
         <div class="form-group"><label>訪問日</label><input type="date" id="f-date"></div>
         <div class="form-group"><label>費用（円）</label><input type="number" id="f-cost" placeholder="例：45000"></div>
         <div class="form-group"><label>メモ</label><textarea id="f-memo" placeholder="感想、おすすめポイントなど"></textarea></div>
-        <button class="btn-add" onclick="addTrip()">記録する</button>
+        <button class="btn-add" onclick="generateJSON()">JSONを生成する</button>
+        <div id="json-output" style="display:none">
+          <div class="json-box" id="json-text"></div>
+          <button class="copy-btn" onclick="copyJSON()">📋 コピーする</button>
+          <div class="instructions">
+            ① コピーしたら <a href="https://github.com" target="_blank">GitHub</a> を開く<br>
+            ② travel-map → trips.json をクリック<br>
+            ③ ✏️（鉛筆マーク）をクリックして編集<br>
+            ④ <code>]</code> の前にコピーした内容を貼り付け<br>
+            ⑤「Commit changes」で保存<br>
+            ⑥ 数分後にページを更新すると地図が反映されます
+          </div>
+        </div>
       </div>
       <div class="tab-panel" id="tab-list">
         <div class="filter-row"><select id="filter-pref" onchange="renderList()"><option value="">すべての都道府県</option></select></div>
@@ -176,7 +193,7 @@ PREFECTURES.forEach(p => {
   });
   path.addEventListener('mousemove', (e) => {
     const tip = document.getElementById('tooltip');
-    const visited = getVisitedPrefs().includes(p.name);
+    const visited = trips.map(t => t.pref).includes(p.name);
     tip.textContent = p.name + (visited ? '（訪問済み）' : '');
     tip.style.left = (e.clientX + 13) + 'px';
     tip.style.top = (e.clientY - 8) + 'px';
@@ -200,20 +217,30 @@ function populateSelect(id) {
 populateSelect('f-pref');
 populateSelect('filter-pref');
 
-// Data
-let trips = JSON.parse(localStorage.getItem('futa-trips') || '[]');
-function save() { localStorage.setItem('futa-trips', JSON.stringify(trips)); }
-function getVisitedPrefs() { return [...new Set(trips.map(t => t.pref))]; }
+// Load trips.json from GitHub Pages
+let trips = [];
+
+async function loadTrips() {
+  try {
+    const res = await fetch('trips.json?t=' + Date.now());
+    trips = await res.json();
+  } catch(e) {
+    trips = [];
+  }
+  updateMap();
+  updateStats();
+  renderList();
+}
 
 function updateMap() {
-  const visited = getVisitedPrefs();
+  const visited = [...new Set(trips.map(t => t.pref))];
   document.querySelectorAll('.prefecture').forEach(el => {
     el.classList.toggle('visited', visited.includes(el.dataset.pref));
   });
 }
 
 function updateStats() {
-  const visited = getVisitedPrefs();
+  const visited = [...new Set(trips.map(t => t.pref))];
   document.getElementById('visited-count').textContent = visited.length;
   document.getElementById('trips-count').textContent = trips.length;
   const total = trips.reduce((s, t) => s + (parseInt(t.cost) || 0), 0);
@@ -224,51 +251,53 @@ function renderList() {
   const fp = document.getElementById('filter-pref').value;
   const list = document.getElementById('trip-list');
   const filtered = fp ? trips.filter(t => t.pref === fp) : trips;
-  const sorted = [...filtered].sort((a, b) => b.date.localeCompare(a.date));
+  const sorted = [...filtered].sort((a, b) => (b.date||'').localeCompare(a.date||''));
   if (sorted.length === 0) {
     list.innerHTML = '<div class="empty-state">まだ記録がありません<br>旅行を追加してみてね</div>';
     return;
   }
-  list.innerHTML = sorted.map(t => {
-    const idx = trips.indexOf(t);
-    return `<div class="trip-card">
+  list.innerHTML = sorted.map((t, i) => `
+    <div class="trip-card">
       <div class="trip-card-header">
         <div>
           <div class="trip-pref">${t.pref}</div>
           ${t.place ? `<div class="trip-place">${t.place}</div>` : ''}
         </div>
-        <button class="btn-delete" onclick="deleteTrip(${idx})">✕</button>
       </div>
       <div class="trip-date">${t.date || '日付なし'}</div>
       ${t.cost ? `<div class="trip-cost">¥${parseInt(t.cost).toLocaleString()}</div>` : ''}
       ${t.memo ? `<div class="trip-memo">${t.memo}</div>` : ''}
-    </div>`;
-  }).join('');
+    </div>
+  `).join('');
 }
 
-function addTrip() {
+function generateJSON() {
   const pref = document.getElementById('f-pref').value;
   if (!pref) { alert('都道府県を選んでください'); return; }
-  trips.push({
+
+  const entry = {
     pref,
     place: document.getElementById('f-place').value,
     date: document.getElementById('f-date').value,
     cost: document.getElementById('f-cost').value,
     memo: document.getElementById('f-memo').value,
-  });
-  save(); updateMap(); updateStats(); renderList();
-  document.getElementById('f-pref').value = '';
-  document.getElementById('f-place').value = '';
-  document.getElementById('f-date').value = '';
-  document.getElementById('f-cost').value = '';
-  document.getElementById('f-memo').value = '';
-  switchTab('list');
+  };
+
+  // Build what the full trips.json should look like
+  const newTrips = [...trips, entry];
+  const jsonStr = JSON.stringify(newTrips, null, 2);
+
+  document.getElementById('json-text').textContent = jsonStr;
+  document.getElementById('json-output').style.display = 'block';
 }
 
-function deleteTrip(idx) {
-  if (!confirm('この記録を削除しますか？')) return;
-  trips.splice(idx, 1);
-  save(); updateMap(); updateStats(); renderList();
+function copyJSON() {
+  const text = document.getElementById('json-text').textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = '✅ コピーしました！';
+    setTimeout(() => btn.textContent = '📋 コピーする', 2000);
+  });
 }
 
 function switchTab(name) {
@@ -281,7 +310,7 @@ function switchTab(name) {
   if (name === 'list') renderList();
 }
 
-updateMap(); updateStats(); renderList();
+loadTrips();
 </script>
 </body>
 </html>
