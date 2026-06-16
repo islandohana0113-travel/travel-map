@@ -59,8 +59,13 @@
   .trip-date { font-size: 0.72rem; color: #aaa; }
   .trip-cost { font-size: 0.75rem; color: var(--accent); font-weight: 500; margin-top: 3px; }
   .trip-memo { font-size: 0.75rem; color: var(--soft); margin-top: 5px; line-height: 1.5; border-top: 1px solid #e0dbd0; padding-top: 5px; }
+  .card-actions { display: flex; gap: 6px; }
+  .btn-edit { background: none; border: none; color: #bbb; cursor: pointer; font-size: 0.85rem; padding: 0 2px; transition: color 0.15s; }
+  .btn-edit:hover { color: var(--moss); }
   .btn-delete { background: none; border: none; color: #ccc; cursor: pointer; font-size: 0.9rem; padding: 0 2px; transition: color 0.15s; }
   .btn-delete:hover { color: var(--accent); }
+  .edit-notice { background: #fff8e1; border: 1px solid #f0d080; border-radius: 6px; padding: 8px 12px; font-size: 0.75rem; color: #7a6000; margin-bottom: 10px; display: none; }
+  .edit-notice a { color: var(--accent); cursor: pointer; text-decoration: underline; }
   .empty-state { text-align: center; color: #bbb; font-size: 0.8rem; padding: 36px 0; line-height: 2.2; }
   .filter-row { margin-bottom: 14px; }
   .filter-row select { font-size: 0.76rem; padding: 6px 10px; }
@@ -101,12 +106,60 @@
     </div>
     <div class="tab-content">
       <div class="tab-panel active" id="tab-add">
-        <div class="form-group"><label>都道府県</label><select id="f-pref"><option value="">選択してください</option></select></div>
+        <div class="form-group"><label>都道府県</label><select id="f-pref"><option value="">選択してください</option><option>北海道</option>
+<option>青森</option>
+<option>岩手</option>
+<option>宮城</option>
+<option>秋田</option>
+<option>山形</option>
+<option>福島</option>
+<option>茨城</option>
+<option>栃木</option>
+<option>群馬</option>
+<option>埼玉</option>
+<option>千葉</option>
+<option>東京</option>
+<option>神奈川</option>
+<option>新潟</option>
+<option>富山</option>
+<option>石川</option>
+<option>福井</option>
+<option>山梨</option>
+<option>長野</option>
+<option>岐阜</option>
+<option>静岡</option>
+<option>愛知</option>
+<option>三重</option>
+<option>滋賀</option>
+<option>京都</option>
+<option>大阪</option>
+<option>兵庫</option>
+<option>奈良</option>
+<option>和歌山</option>
+<option>鳥取</option>
+<option>島根</option>
+<option>岡山</option>
+<option>広島</option>
+<option>山口</option>
+<option>徳島</option>
+<option>香川</option>
+<option>愛媛</option>
+<option>高知</option>
+<option>福岡</option>
+<option>佐賀</option>
+<option>長崎</option>
+<option>熊本</option>
+<option>大分</option>
+<option>宮崎</option>
+<option>鹿児島</option>
+<option>沖縄</option></select></div>
         <div class="form-group"><label>場所・施設名</label><input type="text" id="f-place" placeholder="例：小樽運河、道後温泉"></div>
         <div class="form-group"><label>訪問日</label><input type="date" id="f-date"></div>
         <div class="form-group"><label>費用（円）</label><input type="number" id="f-cost" placeholder="例：45000"></div>
         <div class="form-group"><label>メモ</label><textarea id="f-memo" placeholder="感想、おすすめポイントなど"></textarea></div>
-        <button class="btn-add" onclick="generateJSON()">JSONを生成する</button>
+        <input type="hidden" id="edit-idx" value="">
+        <div class="edit-notice" id="edit-notice">✏️ 修正モードです。内容を編集して生成してください。<br><a onclick="cancelEdit()">キャンセル</a></div>
+        <button class="btn-add" id="btn-generate" onclick="generateJSON()">JSONを生成する</button>
         <div id="json-output" style="display:none">
           <div class="json-box" id="json-text"></div>
           <button class="copy-btn" onclick="copyJSON()">📋 コピーする</button>
@@ -121,7 +174,53 @@
         </div>
       </div>
       <div class="tab-panel" id="tab-list">
-        <div class="filter-row"><select id="filter-pref" onchange="renderList()"><option value="">すべての都道府県</option></select></div>
+        <div class="filter-row"><select id="filter-pref" onchange="renderList()"><option value="">すべての都道府県</option><option>北海道</option>
+<option>青森</option>
+<option>岩手</option>
+<option>宮城</option>
+<option>秋田</option>
+<option>山形</option>
+<option>福島</option>
+<option>茨城</option>
+<option>栃木</option>
+<option>群馬</option>
+<option>埼玉</option>
+<option>千葉</option>
+<option>東京</option>
+<option>神奈川</option>
+<option>新潟</option>
+<option>富山</option>
+<option>石川</option>
+<option>福井</option>
+<option>山梨</option>
+<option>長野</option>
+<option>岐阜</option>
+<option>静岡</option>
+<option>愛知</option>
+<option>三重</option>
+<option>滋賀</option>
+<option>京都</option>
+<option>大阪</option>
+<option>兵庫</option>
+<option>奈良</option>
+<option>和歌山</option>
+<option>鳥取</option>
+<option>島根</option>
+<option>岡山</option>
+<option>広島</option>
+<option>山口</option>
+<option>徳島</option>
+<option>香川</option>
+<option>愛媛</option>
+<option>高知</option>
+<option>福岡</option>
+<option>佐賀</option>
+<option>長崎</option>
+<option>熊本</option>
+<option>大分</option>
+<option>宮崎</option>
+<option>鹿児島</option>
+<option>沖縄</option></select></div>
         <div id="trip-list"></div>
       </div>
     </div>
@@ -205,17 +304,7 @@ PREFECTURES.forEach(p => {
   svg.appendChild(path);
 });
 
-// Populate selects
-function populateSelect(id) {
-  const sel = document.getElementById(id);
-  PREF_NAMES.forEach(name => {
-    const opt = document.createElement('option');
-    opt.value = name; opt.textContent = name;
-    sel.appendChild(opt);
-  });
-}
-populateSelect('f-pref');
-populateSelect('filter-pref');
+
 
 // Load trips.json from GitHub Pages
 let trips = [];
@@ -256,19 +345,62 @@ function renderList() {
     list.innerHTML = '<div class="empty-state">まだ記録がありません<br>旅行を追加してみてね</div>';
     return;
   }
-  list.innerHTML = sorted.map((t, i) => `
+  list.innerHTML = sorted.map((t) => {
+    const realIdx = trips.indexOf(t);
+    return `
     <div class="trip-card">
       <div class="trip-card-header">
         <div>
           <div class="trip-pref">${t.pref}</div>
           ${t.place ? `<div class="trip-place">${t.place}</div>` : ''}
         </div>
+        <div class="card-actions">
+          <button class="btn-edit" onclick="startEdit(${realIdx})">✏️</button>
+          <button class="btn-delete" onclick="deleteTrip(${realIdx})">✕</button>
+        </div>
       </div>
       <div class="trip-date">${t.date || '日付なし'}</div>
       ${t.cost ? `<div class="trip-cost">¥${parseInt(t.cost).toLocaleString()}</div>` : ''}
       ${t.memo ? `<div class="trip-memo">${t.memo}</div>` : ''}
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
+}
+
+function startEdit(idx) {
+  const t = trips[idx];
+  document.getElementById('f-pref').value = t.pref;
+  document.getElementById('f-place').value = t.place || '';
+  document.getElementById('f-date').value = t.date || '';
+  document.getElementById('f-cost').value = t.cost || '';
+  document.getElementById('f-memo').value = t.memo || '';
+  document.getElementById('edit-idx').value = idx;
+  document.getElementById('btn-generate').textContent = '修正してJSONを生成する';
+  document.getElementById('edit-notice').style.display = 'block';
+  document.getElementById('json-output').style.display = 'none';
+  switchTab('add');
+}
+
+function cancelEdit() {
+  document.getElementById('edit-idx').value = '';
+  document.getElementById('btn-generate').textContent = 'JSONを生成する';
+  document.getElementById('edit-notice').style.display = 'none';
+  document.getElementById('f-pref').value = '';
+  document.getElementById('f-place').value = '';
+  document.getElementById('f-date').value = '';
+  document.getElementById('f-cost').value = '';
+  document.getElementById('f-memo').value = '';
+  document.getElementById('json-output').style.display = 'none';
+}
+
+function deleteTrip(idx) {
+  if (!confirm('この記録を削除しますか？')) return;
+  const newTrips = trips.filter((_, i) => i !== idx);
+  const jsonStr = JSON.stringify(newTrips, null, 2);
+  document.getElementById('json-text').textContent = jsonStr;
+  document.getElementById('json-output').style.display = 'block';
+  document.getElementById('edit-notice').style.display = 'none';
+  document.getElementById('btn-generate').textContent = 'JSONを生成する';
+  switchTab('add');
 }
 
 function generateJSON() {
@@ -283,12 +415,18 @@ function generateJSON() {
     memo: document.getElementById('f-memo').value,
   };
 
-  // Build what the full trips.json should look like
-  const newTrips = [...trips, entry];
-  const jsonStr = JSON.stringify(newTrips, null, 2);
+  const editIdx = document.getElementById('edit-idx').value;
+  let newTrips;
+  if (editIdx !== '') {
+    newTrips = trips.map((t, i) => i === parseInt(editIdx) ? entry : t);
+  } else {
+    newTrips = [...trips, entry];
+  }
 
+  const jsonStr = JSON.stringify(newTrips, null, 2);
   document.getElementById('json-text').textContent = jsonStr;
   document.getElementById('json-output').style.display = 'block';
+  cancelEdit();
 }
 
 function copyJSON() {
